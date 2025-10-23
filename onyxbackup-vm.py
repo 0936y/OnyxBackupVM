@@ -94,6 +94,7 @@ class Cli(object):
 		self.logger.info('  space_threshold   = {}'.format(self.config['space_threshold']))
 		self.logger.info('  share_type        = {}'.format(self.config['share_type']))
 		self.logger.info('  compress          = {}'.format(self.config['compress']))
+		self.logger.info('  only_running      = {}'.format(self.config['only_running']))
 		self.logger.info('  max_backups       = {}'.format(self.config['max_backups']))
 		self.logger.info('  vdi_export_format = {}'.format(self.config['vdi_export_format']))
 		self.logger.info('  pool_backup       = {}'.format(self.config['pool_backup']))
@@ -148,7 +149,7 @@ class Cli(object):
 		child_parser.set_defaults(**options)
 		child_parser.add_argument('-o', '--override-exports', action='store_const', dest='vm_exports',
 					  help='Override vm_exports list with command-line values NOTE: Must be specified before any -e options', const=[])
-                child_parser.add_argument('-ov', '--override-vdi-exports', action='store_const', dest='vdi_exports',
+		child_parser.add_argument('-ov', '--override-vdi-exports', action='store_const', dest='vdi_exports',
 					  help='Override vdi_exports list with command-line values NOTE: Must be specified before any -E options', const=[])
 		child_parser.add_argument('-oe', '--override-excludes', action='store_const', dest='excludes',
 					  help='Override excludes list with command-line values NOTE: Must be specified before any -x options', const=[])
@@ -167,6 +168,8 @@ class Cli(object):
 			help='Appends VM name or Regex for vdi-export to existing list (unless specified after -ov option) (Default: None) NOTE: Specify multiple times for multiple values')
 		child_parser.add_argument('-x', '--exclude', action='append', dest='excludes', metavar='STRING',
 			help='Appends VM name or Regex for exclusion to existing list (unless specified after -oe option) (Default: None) NOTE: Specify multiple times for multiple values')
+		child_parser.add_argument('--only-running', action='store_true',
+			help='Only include VMs with power-state=running when matching export lists')
 
 		final_args = vars(child_parser.parse_args(remaining_argv))
 		options.update(final_args)

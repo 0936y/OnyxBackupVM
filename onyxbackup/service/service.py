@@ -196,6 +196,15 @@ class XenApiService(object):
                     self._stop_subtask()
                     continue
 
+                # Skip disks explicitly marked with [NOBAK] in their VDI name
+                vdi_record = self._d.get_vdi_record(vdi_uuid)
+                if vdi_record and 'name_label' in vdi_record and '[NOBAK]' in vdi_record['name_label']:
+                    self.logger.info('-> Disk {} is marked [NOBAK]; skipping'.format(disk))
+                    self._add_status('warning', '(!) Skipping VDI marked [NOBAK]: {}'.format(vdi_record['name_label']))
+                    self._h.delete_file(meta_backup_file)
+                    self._stop_subtask()
+                    continue
+
                 if not self._cleanup_snapshot(vdi_uuid, 'vdi'):
                     self._h.delete_file(meta_backup_file)
                     self.logger.info(skip_message_disk)
@@ -606,6 +615,20 @@ class XenApiService(object):
         else:
             return vms
 
+    def _get_running_vms(self, as_list=True):
+        """
+            Get a list of running VMs in the pool and by default return as list
+        """
+        cmd = 'vm-list is-control-domain=false is-a-snapshot=false power-state=running params=name-label --minimal'
+        vms = self._get_xe_cmd_result(cmd)
+        if as_list:
+            vms = vms.split(',')
+        self.logger.debug('(i) -> Running VMs in pool: {}'.format(vms))
+        if vms == [''] or len(vms) == 0:
+            raise RuntimeError('(!) No running VMs in pool to backup')
+        else:
+            return vms
+
     def _get_os_version(self, uuid):
         """
             Get OS version of VM and trim to just show the 'name' portion
@@ -907,7 +930,10 @@ class XenApiService(object):
             are processed, and check the selected VM lists against those valid
             existing VMs
         """
-        all_vms = self._get_all_vms()
+        if self.config.get('only_running'):
+            all_vms = self._get_running_vms()
+        else:
+            all_vms = self._get_all_vms()
         sanitized_vms = []
 
         for vm in all_vms:

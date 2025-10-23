@@ -48,6 +48,7 @@ class Configurator(object):
 		conf_parser.set('xenserver', 'vdi_export_format', 'raw')
 		conf_parser.set('xenserver', 'pool_backup', 'False')
 		conf_parser.set('xenserver', 'host_backup', 'False')
+		conf_parser.set('xenserver', 'only_running', 'False')
 		conf_parser.add_section('smtp')
 		conf_parser.set('smtp', 'smtp_enabled', 'false')
 		conf_parser.set('smtp', 'smtp_auth', 'false')
@@ -114,6 +115,7 @@ class Configurator(object):
 		options['vdi_export_format'] = parser.get('xenserver', 'vdi_export_format')
 		options['pool_backup'] = parser.getboolean('xenserver', 'pool_backup')
 		options['host_backup'] = parser.getboolean('xenserver', 'host_backup')
+		options['only_running'] = parser.getboolean('xenserver', 'only_running')
 		options['vm_exports'] = parser.get('xenserver', 'vm_exports').split(',') if parser.has_option('xenserver', 'vm_exports') else []
 		options['vdi_exports'] = parser.get('xenserver', 'vdi_exports').split(',') if parser.has_option('xenserver', 'vdi_exports') else []
 		options['excludes'] = parser.get('xenserver', 'excludes').split(',') if parser.has_option('xenserver', 'excludes') else []
