@@ -333,6 +333,10 @@ class XenApiService(object):
                 self._stop_task()
                 continue
 
+            # Remove excluded VDIs from snapshot before exporting full VM
+            if not self._remove_excluded_vdis_from_snapshot(snap_uuid):
+                self.logger.warning('(!) Failed to exclude specified VDIs from snapshot; proceeding with export')
+
             if not self._export_to_file(snap_uuid, backup_file):
                 self._uninstall_vm(snap_uuid)
                 self._h.delete_file(meta_backup_file)
@@ -507,6 +511,51 @@ class XenApiService(object):
         if percent_remaining < self.config['space_threshold']:
             self._add_status('error', '(!) Space remaining is below threshold: {}%'.format(percent_remaining))
             return False
+        return True
+
+    def _remove_excluded_vdis_from_snapshot(self, vm_uuid):
+        """
+            For a VM snapshot, remove any VBDs whose VDI name-label matches
+            any pattern in exclude_vdi. This reduces exported size for VM-EXPORT.
+        """
+        patterns = self.config.get('exclude_vdi', []) or []
+        if not patterns:
+            return True
+
+        self.logger.info('> Applying exclude_vdi filters to snapshot')
+        vbd_list = self._get_xe_cmd_result('vbd-list vm-uuid={} params=uuid --minimal'.format(vm_uuid))
+        if not vbd_list:
+            self.logger.debug('(i) -> No VBDs found on snapshot')
+            return True
+        vbd_uuids = vbd_list.split(',')
+
+        for vbd_uuid in vbd_uuids:
+            if not vbd_uuid:
+                continue
+            vdi_uuid = self._get_xe_cmd_result('vbd-param-get uuid={} param-name=VDI-uuid'.format(vbd_uuid))
+            if not vdi_uuid:
+                continue
+            vdi_name = self._get_xe_cmd_result('vdi-param-get uuid={} param-name=name-label'.format(vdi_uuid))
+            if not vdi_name:
+                vdi_name = ''
+
+            exclude_match = False
+            for pattern in patterns:
+                if pattern and pattern in vdi_name:
+                    exclude_match = True
+                    break
+
+            if not exclude_match:
+                continue
+
+            self.logger.info('-> Excluding VDI from snapshot export: {} ({})'.format(vdi_name, vdi_uuid))
+
+            # Attempt to unplug if hot-plugged (ignore failures)
+            self._run_xe_cmd('vbd-unplug uuid={}'.format(vbd_uuid))
+            # Destroy VBD attachment on snapshot
+            if not self._run_xe_cmd('vbd-destroy uuid={}'.format(vbd_uuid)):
+                self._add_status('warning', '(!) Failed to destroy VBD for excluded VDI: {}'.format(vdi_name))
+
         return True
 
     def _cleanup_snapshot(self, uuid, snapshot_type='vm', snap_name='ONYXBACKUP'):
