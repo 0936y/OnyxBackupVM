@@ -196,6 +196,24 @@ class XenApiService(object):
                     self._stop_subtask()
                     continue
 
+                # Skip disks whose VDI name-label matches any exclude_vdi patterns (substring match)
+                try:
+                    vdi_record = self._d.get_vdi_record(vdi_uuid)
+                    vdi_name = vdi_record['name_label'] if vdi_record and 'name_label' in vdi_record else ''
+                except Exception:
+                    vdi_name = ''
+                excluded = False
+                for pattern in self.config.get('exclude_vdi', []) or []:
+                    if pattern and pattern in vdi_name:
+                        excluded = True
+                        break
+                if excluded:
+                    self.logger.info('-> Disk {} name "{}" matched exclude_vdi; skipping'.format(disk, vdi_name))
+                    self._add_status('warning', '(!) Skipping VDI due to exclude_vdi match: {}'.format(vdi_name))
+                    self._h.delete_file(meta_backup_file)
+                    self._stop_subtask()
+                    continue
+
                 if not self._cleanup_snapshot(vdi_uuid, 'vdi'):
                     self._h.delete_file(meta_backup_file)
                     self.logger.info(skip_message_disk)
@@ -819,7 +837,7 @@ class XenApiService(object):
         cmd = '{}/xe {}'.format(self._xe_path, cmd)
         try:
             result = self._h.run_cmd(cmd)
-            if result <> 0:
+            if result != 0:
                 self.logger.debug('(i) ---> Command returned non-zero exit status')
             else:
                 self.logger.debug('(i) ---> Command successful')
@@ -968,7 +986,7 @@ class XenApiService(object):
                 if len(values) > 1:
                     try:
                         tmp_max = int(values[1])
-                        if isinstance(tmp_max, (int, long)) and (tmp_max == -1 or tmp_max > 0):
+                        if isinstance(tmp_max, int) and (tmp_max == -1 or tmp_max > 0):
                             vm_backups = values[1]
                             if len(values) == 3:
                                 vdi_disks = values[2]

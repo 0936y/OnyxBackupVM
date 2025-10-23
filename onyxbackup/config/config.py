@@ -49,6 +49,7 @@ class Configurator(object):
 		conf_parser.set('xenserver', 'pool_backup', 'False')
 		conf_parser.set('xenserver', 'host_backup', 'False')
 		conf_parser.set('xenserver', 'only_running', 'False')
+		conf_parser.set('xenserver', 'exclude_vdi', '')
 		conf_parser.add_section('smtp')
 		conf_parser.set('smtp', 'smtp_enabled', 'false')
 		conf_parser.set('smtp', 'smtp_auth', 'false')
@@ -119,6 +120,11 @@ class Configurator(object):
 		options['vm_exports'] = parser.get('xenserver', 'vm_exports').split(',') if parser.has_option('xenserver', 'vm_exports') else []
 		options['vdi_exports'] = parser.get('xenserver', 'vdi_exports').split(',') if parser.has_option('xenserver', 'vdi_exports') else []
 		options['excludes'] = parser.get('xenserver', 'excludes').split(',') if parser.has_option('xenserver', 'excludes') else []
+		if parser.has_option('xenserver', 'exclude_vdi'):
+			exc_raw = parser.get('xenserver', 'exclude_vdi')
+			options['exclude_vdi'] = [s for s in exc_raw.split(',') if s != '']
+		else:
+			options['exclude_vdi'] = []
 		options['smtp_enabled'] = parser.getboolean('smtp', 'smtp_enabled')
 		options['smtp_auth'] = parser.getboolean('smtp', 'smtp_auth')
 		options['smtp_user'] = parser.get('smtp', 'smtp_user')
