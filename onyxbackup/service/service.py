@@ -196,15 +196,6 @@ class XenApiService(object):
                     self._stop_subtask()
                     continue
 
-                # Skip disks explicitly marked with [NOBAK] in their VDI name
-                vdi_record = self._d.get_vdi_record(vdi_uuid)
-                if vdi_record and 'name_label' in vdi_record and '[NOBAK]' in vdi_record['name_label']:
-                    self.logger.info('-> Disk {} is marked [NOBAK]; skipping'.format(disk))
-                    self._add_status('warning', '(!) Skipping VDI marked [NOBAK]: {}'.format(vdi_record['name_label']))
-                    self._h.delete_file(meta_backup_file)
-                    self._stop_subtask()
-                    continue
-
                 if not self._cleanup_snapshot(vdi_uuid, 'vdi'):
                     self._h.delete_file(meta_backup_file)
                     self.logger.info(skip_message_disk)
