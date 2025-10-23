@@ -99,7 +99,6 @@ class Cli(object):
 		self.logger.info('  vdi_export_format = {}'.format(self.config['vdi_export_format']))
 		self.logger.info('  pool_backup       = {}'.format(self.config['pool_backup']))
 		self.logger.info('  host_backup       = {}'.format(self.config['host_backup']))
-		self.logger.info('  exclude_vdi       = {}'.format(self.config['exclude_vdi']))
 		self._print_vm_list('excludes', self.config['excludes'])
 		self._print_vm_list('vdi-exports', self.config['vdi_exports'])
 		self._print_vm_list('vm-exports', self.config['vm_exports'])
@@ -171,8 +170,6 @@ class Cli(object):
 			help='Appends VM name or Regex for exclusion to existing list (unless specified after -oe option) (Default: None) NOTE: Specify multiple times for multiple values')
 		child_parser.add_argument('--only-running', action='store_true',
 			help='Only include VMs with power-state=running when matching export lists')
-		child_parser.add_argument('--exclude-vdi', action='append', dest='exclude_vdi', metavar='STRING',
-			help='Append substring/regex to exclude VDI name-labels from export (can repeat)')
 
 		final_args = vars(child_parser.parse_args(remaining_argv))
 		options.update(final_args)
